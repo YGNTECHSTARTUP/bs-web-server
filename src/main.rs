@@ -20,5 +20,13 @@ fn connection_control(mut stream: TcpStream) {
         let request_format = "HTTP/1.1 200 OKS";
         let response = format!("{request_format}\r\nContent-Length:{length}\r\n\r\n{content}");
         stream.write_all(response.as_bytes()).unwrap();
+    } else {
+        let content = fs::read_to_string("notfound.html").unwrap();
+        let length = content.len();
+        let request_format = "HTTP/1.1 404 NOT FOUND";
+        let response = format!("{request_format}\r\nContent-Length:{length}\r\n\r\n{content}");
+        stream.write_all(response.as_bytes()).unwrap();
+        
     }
+
 }
