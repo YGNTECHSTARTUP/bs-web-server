@@ -1,3 +1,4 @@
+use bs_web_server::ThreadPool;
 use std::{
     fs,
     io::{BufRead, BufReader, Write},
@@ -5,10 +6,12 @@ use std::{
     thread,
     time::Duration,
 };
+
 fn main() {
     let listner = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let threadpool = ThreadPool::new(5);
     for stream in listner.incoming() {
-        connection_control(stream.unwrap());
+        threadpool.execute(|| connection_control(stream.unwrap()))
     }
     println!("Hello, world!");
 }
