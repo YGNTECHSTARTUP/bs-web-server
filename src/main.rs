@@ -12,21 +12,20 @@ fn main() {
 }
 
 fn connection_control(mut stream: TcpStream) {
-    let Buf = BufReader::new(&stream);
-    let status_lines = Buf.lines().next().unwrap().unwrap();
-    if status_lines == "GET / HTTP/1.1" {
-        let content = fs::read_to_string("hello.html").unwrap();
-        let length = content.len();
+    let buf = BufReader::new(&stream);
+    let status_lines = buf.lines().next().unwrap().unwrap();
+    let (filename, request_format): (String, &str) = if status_lines == "GET / HTTP/1.1" {
+        let filename = "hello.html".to_string();
         let request_format = "HTTP/1.1 200 OKS";
-        let response = format!("{request_format}\r\nContent-Length:{length}\r\n\r\n{content}");
-        stream.write_all(response.as_bytes()).unwrap();
+        (filename, request_format)
     } else {
-        let content = fs::read_to_string("notfound.html").unwrap();
-        let length = content.len();
+        let filename = "notfound.html".to_string();
         let request_format = "HTTP/1.1 404 NOT FOUND";
-        let response = format!("{request_format}\r\nContent-Length:{length}\r\n\r\n{content}");
-        stream.write_all(response.as_bytes()).unwrap();
-        
-    }
-
+        (filename, request_format)
+    };
+    let content = fs::read_to_string(filename).unwrap();
+    let length = content.len();
+    // dbg!(content, length, request_format);
+    let response = format!("{request_format}\r\nContent-Length:{length}\r\n\r\n{content}");
+    stream.write_all(response.as_bytes()).unwrap();
 }
