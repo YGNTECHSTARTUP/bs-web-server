@@ -1,19 +1,40 @@
 use bs_web_server::ThreadPool;
 use std::{
     fs,
-    io::{BufRead, BufReader, Write},
+    io::{self, BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     thread,
     time::Duration,
 };
+use thiserror::Error;
+#[derive(Debug, Error)]
+enum ServerErrors {
+    #[error("Connection Establishment Failed")]
+    ConnectionFailed,
+    #[error("Invalid Stream")]
+    StreamError,
+    #[error("Invalid Status line")]
+    InvalidStatus,
+    #[error("IO Error:{0}")]
+    Io(#[from] io::Error),
+}
 
-fn main() {
-    let listner = TcpListener::bind("127.0.0.1:7878").unwrap();
+fn map_io_error(err: io::Error) -> ServerErrors {
+    match err.kind() {
+        io::ErrorKind::PermissionDenied => ServerErrors::ConnectionFailed,
+        io::ErrorKind::NotFound => ServerErrors::InvalidStatus,
+        io::ErrorKind::ConnectionReset => ServerErrors::ConnectionFailed,
+        _ => ServerErrors::Io(err),
+    }
+}
+
+fn main() -> Result<(), ServerErrors> {
+    let listner = TcpListener::bind("127.0.0.1:7878").map_err(map_io_error)?;
     let threadpool = ThreadPool::new(5);
     for stream in listner.incoming() {
         threadpool.execute(|| connection_control(stream.unwrap()))
     }
-    println!("Hello, world!");
+    Ok(())
 }
 
 fn connection_control(mut stream: TcpStream) {
